@@ -14,15 +14,12 @@
 */
 
 // Проверки до вывода карт:
-// -- одна и таже карта не была выдана дважды (физически невозможно)
-// -- у одного из игроков есть как минимум одна пара (дополнительная проверка)
+// 
+// -- у 90%  игроков есть как минимум одна пара (дополнительная проверка)
 // 3. Подсчитать количество пар у каждого игрока (не больше 2х)
 // 4. Победителю добавить класс css и подсветить парные карты
 
-// собрать 5 карт.  в цикле до 5 повторяем
-    // 1. генерим одну карту объектом
-    // 2. добавляем в массив
-    // 3. проверяем, если ли такая карта по масти и числу, если есть, делаем пункт 1
+
 
 Poker = (function($) {
 
@@ -31,6 +28,8 @@ Poker = (function($) {
     const cards = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
     const cardsForEachPlayer = 5;
+    const amountOfPlayers = 2;
+    let mainCardArray = getMainCardArray(suits, cards);
 
     // *-* public methods *-*
 
@@ -48,47 +47,55 @@ Poker = (function($) {
         return m + Math.floor(Math.random() * (n - m + 1));
     };
 
-    const randomSuiteOrCard = arr => {
-        return arr[randomNumber(0, arr.length - 1)];
-    };
-
-    const getOneCard = () => {        
-        return { [randomSuiteOrCard(suits)]: randomSuiteOrCard(cards) };
-    };
-
-    const getCardArray = (arr, numbersOfCard) => {
-        if (numbersOfCard === 0) return arr;
-        if (numbersOfCard >=1) { 
-
-            const newCard = getOneCard();
-            // console.log('newCard', newCard);            
-
-            if (arr.length === 0) {                
-                arr.push(newCard);
-                
-            } else {
-                const result = arr.find(elem => {                    
-                    
-                    return Object.keys(newCard).every(key => {                        
-                        return elem[key] === newCard[key];
-                    });
-                });
-
-                if (result === undefined) {
-                    arr.push(newCard);
-                } else {
-                    numbersOfCard += 1;
-                }
+    function getMainCardArray (arr1, arr2) {
+        const mainCardArray = [];
+        for (let i = 0; i < arr1.length; i += 1) {
+            for (let j = 0; j < arr2.length; j += 1) {
+                mainCardArray.push({
+                    suit: arr1[i],
+                    card: arr2[j]
+                })
             }
-            return getCardArray(arr, numbersOfCard - 1);
-        }   
+        }
+        return mainCardArray;
+    }
+
+    const getNinetyPercentOfPlayers = (number) => {
+        return Math.round(number /100 * 90);
     };
+
+    const getRandomCard = (arr) => {
+        const indexOfElem = randomNumber(0, arr.length - 1);
+        const [ randomCard ] = arr.splice(indexOfElem, 1);
+        mainCardArray = arr;
+        return randomCard; // return object
+    }
+
+    const getCardsPair = (arr) => {        
+        const indexOfElem1 = randomNumber(0, arr.length - 1);
+        const [ firstCard ] = arr.splice(indexOfElem1, 1);
+
+        const tempArr = arr.filter((elem) => {
+            return elem.card === firstCard.card;
+        });
+
+        const indexOfElem2 = randomNumber(0, tempArr.length - 1);
+        const [ secondCard ] = tempArr.splice(indexOfElem2, 1);
+        
+        mainCardArray = arr.filter(elem => {
+            return elem !== secondCard;
+        });
+
+        return [firstCard, secondCard];
+    }
+
 
     const createElement = tag => {
         return document.createElement(tag);
     };
 
     const appendCards = (id, data) => {
+        console.log(id);
         const constainer = document.getElementById(id);
         const mainDiv = createElement("div");
         mainDiv.classList.add("card-container");
@@ -103,7 +110,7 @@ Poker = (function($) {
 
             for (let key in elem) {
                 if (elem.hasOwnProperty(key)) {                    
-                    image.src = `http://h3h.net/images/cards/${key}_${elem[key]}.svg`;
+                    image.src = `http://h3h.net/images/cards/${elem.suit}_${elem.card}.svg`;
                 }
             }
                        
@@ -112,29 +119,63 @@ Poker = (function($) {
     };
 
     const findPairs = (arr) => {
-        console.log(arr)
-        const aaa = Object.values(arr);
-        console.log(aaa);
+        console.log(arr);        
     }
 
 
     // *-* event methods *-*
 
     var eventPlayAgainClicked = function() {
-        let hand1 = makeHand();
-        let hand2 = makeHand();
         
-        let cardArray = getCardArray(hand1, cardsForEachPlayer*2);
+        let hands = [];
+        // создаем массивы для карт по количеству игроков
+        for (let i = 0; i < amountOfPlayers; i += 1) {
+            hands.push(makeHand());            
+        }
 
-        // console.log('hand1', cardArray);
+        // 90% игроков - это
+        const ninetyPercentOfPlayers = getNinetyPercentOfPlayers(amountOfPlayers);
+        // console.log(ninetyPercentOfPlayers);
 
-        const cardArrayHand1 = cardArray.slice(0, cardsForEachPlayer);
-        const cardArrayHand2 = cardArray.slice(cardsForEachPlayer);
+        //остаток игроков - это
+        const restOfPlayers = amountOfPlayers - ninetyPercentOfPlayers;
+        
+        
+        // выдаем по паре карт для 90 процентов игроков
+ 
+        for (let i = 0; i < ninetyPercentOfPlayers; i += 1) {
+            hands[i] = getCardsPair(mainCardArray);
+        }
 
-        appendCards("hand1", cardArrayHand1);
-        appendCards("hand2", cardArrayHand2);
+        // додаем оставшиеся карты 90 процентам
+        
+        console.log(mainCardArray)
+        
+        for (let i = 0; i < ninetyPercentOfPlayers; i += 1) {
+            for (let j = 0; j < (cardsForEachPlayer - 2); j += 1) {
+                hands[i].push(getRandomCard(mainCardArray))
+            }
+            console.log('ninetyPercentOfPlayers', hands[i]);
+        }
 
-        findPairs(cardArrayHand1);
+        // додаем оставшиеся карты restOfPlayers
+
+        if (restOfPlayers > 0) {
+            for (let i = ninetyPercentOfPlayers; i < amountOfPlayers; i += 1) {
+                for (let j = 0; j < cardsForEachPlayer; j += 1) {
+                    hands[i].push(getRandomCard(mainCardArray))
+                }
+                console.log('rest', hands[i]);
+            }
+        }
+        
+        console.log(mainCardArray);
+
+        for (let i = 0; i < amountOfPlayers; i += 1) {
+            appendCards(`hand${i+1}`, hands[i]);
+        }
+
+        // findPairs(cardArrayHand1);
     };
 
     // expose public methods
